@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>proyecto hex (paint) 💎</title>
+  <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 10px 0;
+            font-size: 28px;
+        }
+
+        .contenedor {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .barra-herramientas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+
+        button, input[type="color"], input[type="range"] {
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button {
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button.rojito {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        button.verde {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        input[type="color"] {
+            width: 45px;
+            height: 40px;
+            border: 2px solid #ccc;
+        }
+
+        label {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        canvas {
+            border: 3px solid #333;
+            border-radius: 10px;
+            background: white;
+            cursor: crosshair;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎨 dibujo </h1>
+
+    <div class="contenedor">
+        <!-- Barra de herramientas -->
+        <div class="barra-herramientas">
+            <button id="pincel">✏️ Pincel</button>
+            <button id="borrar">🧹 Borrador</button>
+            <label>Color: </label>
+            <input type="color" id="color" value="#000000">
+            <label>Grosor: </label>
+            <input type="range" id="grosor" min="1" max="50" value="5">
+            <button id="limpiar" class="rojito">🗑️ Limpiar</button>
+            <button id="guardar" class="verde">💾 Guardar</button>
+        </div>
+
+        <!-- El lienzo donde dibujas -->
+        <canvas id="lienzo" width="900" height="550"></canvas>
+    </div>
+
+    <script>
+        // Obtener elementos
+        const lienzo = document.getElementById('lienzo');
+        const ctx = lienzo.getContext('2d');
+        const colorPicker = document.getElementById('color');
+        const grosorPicker = document.getElementById('grosor');
+        const btnPincel = document.getElementById('pincel');
+        const btnBorrar = document.getElementById('borrar');
+        const btnLimpiar = document.getElementById('limpiar');
+        const btnGuardar = document.getElementById('guardar');
+
+        // Variables
+        let dibujando = false;
+        let ultimoX = 0;
+        let ultimoY = 0;
+        let colorActual = '#000000';
+        let grosorActual = 5;
+        let modo = 'pincel'; // 'pincel' o 'borrar'
+
+        // Empezar a dibujar
+        function iniciarDibujo(e) {
+            dibujando = true;
+            [ultimoX, ultimoY] = obtenerCoordenadas(e);
+        }
+
+        // Dibujar mientras se mueve el ratón o dedo
+        function dibujar(e) {
+            if (!dibujando) return;
+            e.preventDefault();
+
+            const [x, y] = obtenerCoordenadas(e);
+            
+            ctx.beginPath();
+            ctx.moveTo(ultimoX, ultimoY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = modo === 'borrar' ? '#ffffff' : colorActual;
+            ctx.lineWidth = grosorActual;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            [ultimoX, ultimoY] = [x, y];
+        }
+
+        // Dejar de dibujar
+        function detenerDibujo() {
+            dibujando = false;
+        }
+
+        // Sacar coordenadas (sirve para ratón y para celular)
+        function obtenerCoordenadas(e) {
+            const rect = lienzo.getBoundingClientRect();
+            const escalaX = lienzo.width / rect.width;
+            const escalaY = lienzo.height / rect.height;
+
+            if (e.touches) {
+                return [
+                    (e.touches[0].clientX - rect.left) * escalaX,
+                    (e.touches[0].clientY - rect.top) * escalaY
+                ];
+            }
+            return [
+                (e.clientX - rect.left) * escalaX,
+                (e.clientY - rect.top) * escalaY
+            ];
+        }
+
+        // Eventos del ratón
+        lienzo.addEventListener('mousedown', iniciarDibujo);
+        lienzo.addEventListener('mousemove', dibujar);
+        lienzo.addEventListener('mouseup', detenerDibujo);
+        lienzo.addEventListener('mouseout', detenerDibujo);
+
+        // Eventos para celular (pantalla táctil)
+        lienzo.addEventListener('touchstart', iniciarDibujo);
+        lienzo.addEventListener('touchmove', dibujar);
+        lienzo.addEventListener('touchend', detenerDibujo);
+
+        // Cambiar color
+        colorPicker.addEventListener('input', e => {
+            colorActual = e.target.value;
+            modo = 'pincel';
+        });
+
+        // Cambiar grosor
+        grosorPicker.addEventListener('input', e => {
+            grosorActual = e.target.value;
+        });
+
+        // Botones de herramientas
+        btnPincel.addEventListener('click', () => {
+            modo = 'pincel';
+        });
+
+        btnBorrar.addEventListener('click', () => {
+            modo = 'borrar';
+        });
+
+        // Limpiar todo
+        btnLimpiar.addEventListener('click', () => {
+            if (confirm('¿Borrar todo tu dibujo? 🥺')) {
+                ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+            }
+        });
+
+        // Guardar imagen
+        btnGuardar.addEventListener('click', () => {
+            const enlace = document.createElement('a');
+            enlace.download = 'mi-dibujo.png';
+            enlace.href = lienzo.toDataURL();
+            enlace.click();
+        });
+    </script>
+</body>
+</html>
